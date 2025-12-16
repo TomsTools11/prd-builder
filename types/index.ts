@@ -13,6 +13,7 @@ export interface UploadedFile {
   size: number;
   content?: string;
   base64?: string;
+  file?: File;
 }
 
 export interface PRDStats {

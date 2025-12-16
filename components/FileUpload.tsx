@@ -6,12 +6,14 @@ import { formatFileSize } from "@/lib/utils";
 import type { UploadedFile } from "@/types";
 
 interface FileUploadProps {
+  files?: UploadedFile[];
   onFilesChange: (files: UploadedFile[]) => void;
   maxSize?: number; // in bytes
 }
 
-export default function FileUpload({ onFilesChange, maxSize = 50 * 1024 * 1024 }: FileUploadProps) {
-  const [files, setFiles] = useState<UploadedFile[]>([]);
+export default function FileUpload({ files: controlledFiles, onFilesChange, maxSize = 50 * 1024 * 1024 }: FileUploadProps) {
+  const [internalFiles, setInternalFiles] = useState<UploadedFile[]>([]);
+  const files = controlledFiles ?? internalFiles;
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string>("");
 
@@ -50,6 +52,7 @@ export default function FileUpload({ onFilesChange, maxSize = 50 * 1024 * 1024 }
           name: file.name,
           type: file.type,
           size: file.size,
+          file: file,
         };
 
         // Read file for processing
@@ -65,10 +68,12 @@ export default function FileUpload({ onFilesChange, maxSize = 50 * 1024 * 1024 }
       }
 
       const updatedFiles = [...files, ...newFiles];
-      setFiles(updatedFiles);
+      if (controlledFiles === undefined) {
+        setInternalFiles(updatedFiles);
+      }
       onFilesChange(updatedFiles);
     },
-    [files, onFilesChange, maxSize]
+    [files, controlledFiles, onFilesChange, maxSize]
   );
 
   const handleDrop = useCallback(
@@ -105,10 +110,12 @@ export default function FileUpload({ onFilesChange, maxSize = 50 * 1024 * 1024 }
   const removeFile = useCallback(
     (id: string) => {
       const updatedFiles = files.filter((f) => f.id !== id);
-      setFiles(updatedFiles);
+      if (controlledFiles === undefined) {
+        setInternalFiles(updatedFiles);
+      }
       onFilesChange(updatedFiles);
     },
-    [files, onFilesChange]
+    [files, controlledFiles, onFilesChange]
   );
 
   const getFileIcon = (type: string) => {
