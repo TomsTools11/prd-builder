@@ -1,37 +1,77 @@
 "use client";
 
-import { useState } from "react";
-import InputForm from "@/components/InputForm";
-import PDFPreview from "@/components/PDFPreview";
-import StatsBar from "@/components/StatsBar";
-import GenerationProgress from "@/components/GenerationProgress";
-import DownloadPanel from "@/components/DownloadPanel";
-import { Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import Header from "@/components/Header";
+import { HeroSection, HowItWorks, FeatureGrid, PDFOutput, FooterCTA, Footer } from "@/components/landing";
+import { ProgressScreen } from "@/components/progress";
+import { OutputScreen } from "@/components/output";
 import type { PRDFormData, UploadedFile } from "@/types";
 
+type AppState = "landing" | "generating" | "complete";
+
 export default function Home() {
+  const [appState, setAppState] = useState<AppState>("landing");
   const [prdContent, setPrdContent] = useState("");
   const [productName, setProductName] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState("");
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleGenerate = async (formData: PRDFormData, files: UploadedFile[]) => {
-    setIsGenerating(true);
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const handleGenerate = async (name: string, description: string, files: UploadedFile[]) => {
+    setAppState("generating");
     setError("");
     setPrdContent("");
-    setProductName(formData.productName);
+    setProductName(name);
+    setProgress(0);
+    setCurrentStep(0);
+
+    // Start progress simulation
+    progressIntervalRef.current = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 95) {
+          return prev;
+        }
+        const increment = Math.random() * 5 + 2;
+        const newProgress = Math.min(prev + increment, 95);
+
+        // Update current step based on progress
+        if (newProgress >= 75) {
+          setCurrentStep(3);
+        } else if (newProgress >= 50) {
+          setCurrentStep(2);
+        } else if (newProgress >= 25) {
+          setCurrentStep(1);
+        }
+
+        return newProgress;
+      });
+    }, 500);
 
     try {
       // Prepare form data for API
       const apiFormData = new FormData();
-      apiFormData.append("productName", formData.productName);
-      apiFormData.append("description", formData.description);
-      apiFormData.append("goals", formData.goals);
-      apiFormData.append("targetAudience", formData.targetAudience);
-      apiFormData.append("features", JSON.stringify(formData.features));
+      apiFormData.append("productName", name);
+      apiFormData.append("description", description);
+      apiFormData.append("goals", "");
+      apiFormData.append("targetAudience", "");
+      apiFormData.append("features", JSON.stringify([]));
 
-      // Note: File uploads would need additional handling
-      // For now, files are processed client-side
+      // Add files to form data
+      files.forEach((file) => {
+        if (file.file) {
+          apiFormData.append("files", file.file);
+        }
+      });
 
       // Call streaming API
       const response = await fetch("/api/generate", {
@@ -53,6 +93,7 @@ export default function Home() {
       }
 
       let buffer = "";
+      let contentBuffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -68,18 +109,25 @@ export default function Home() {
             const data = line.slice(6);
 
             if (data === "[DONE]") {
-              setIsGenerating(false);
+              // Clear interval and complete
+              if (progressIntervalRef.current) {
+                clearInterval(progressIntervalRef.current);
+              }
+              setProgress(100);
+              setCurrentStep(4);
+              setTimeout(() => {
+                setAppState("complete");
+              }, 500);
               break;
             }
 
             try {
               const parsed = JSON.parse(data);
               if (parsed.text) {
-                setPrdContent((prev) => prev + parsed.text);
+                contentBuffer += parsed.text;
+                setPrdContent(contentBuffer);
               } else if (parsed.error) {
-                setError(parsed.error);
-                setIsGenerating(false);
-                break;
+                throw new Error(parsed.error);
               }
             } catch (e) {
               console.error("Error parsing SSE data:", e);
@@ -88,90 +136,76 @@ export default function Home() {
         }
       }
     } catch (err: any) {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
       setError(err.message || "An error occurred while generating the PRD");
-      setIsGenerating(false);
+      setAppState("landing");
     }
   };
 
-  const handleNewPRD = () => {
+  const handleCancel = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    setAppState("landing");
     setPrdContent("");
     setProductName("");
+    setProgress(0);
+    setCurrentStep(0);
+  };
+
+  const handleNewPRD = () => {
+    setAppState("landing");
+    setPrdContent("");
+    setProductName("");
+    setProgress(0);
+    setCurrentStep(0);
     setError("");
   };
 
+  // Render based on state
+  if (appState === "generating") {
+    return (
+      <ProgressScreen
+        productName={productName}
+        progress={progress}
+        currentStep={currentStep}
+        onCancel={handleCancel}
+      />
+    );
+  }
+
+  if (appState === "complete") {
+    return (
+      <OutputScreen
+        productName={productName}
+        content={prdContent}
+        onNewPRD={handleNewPRD}
+      />
+    );
+  }
+
+  // Landing page
   return (
-    <main className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-yale-blue/30 bg-prussian-blue/50 backdrop-blur-sm sticky top-0 z-20">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-dodger-blue/10">
-                <Sparkles className="h-6 w-6 text-dodger-blue" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-dodger-blue">PRD Builder</h1>
-                <p className="text-sm text-gray-400">AI-Powered Product Requirements Generator</p>
-              </div>
-            </div>
-            {prdContent && !isGenerating && (
-              <button
-                onClick={handleNewPRD}
-                className="flex items-center gap-2 px-4 py-2 bg-yale-blue/30 hover:bg-yale-blue/50 text-white rounded-md transition-colors border border-yale-blue/50"
-              >
-                New PRD
-              </button>
-            )}
+    <div className="min-h-screen bg-background">
+      <Header variant="landing" />
+
+      {/* Error message */}
+      {error && (
+        <div className="container-custom py-4">
+          <div className="rounded-lg bg-error/10 border border-error/50 p-4">
+            <p className="text-error text-sm">{error}</p>
           </div>
         </div>
-      </header>
+      )}
 
-      {/* Main Content */}
-      <div className="container mx-auto px-6 py-8">
-        {error && (
-          <div className="mb-6 rounded-lg bg-red-500/10 border border-red-500/50 p-4">
-            <p className="text-red-400">{error}</p>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Input Form */}
-          <div className="space-y-6">
-            <InputForm onSubmit={handleGenerate} isGenerating={isGenerating} />
-          </div>
-
-          {/* Right Column - Preview & Download */}
-          <div className="space-y-6">
-            {/* Stats Bar */}
-            {prdContent && <StatsBar content={prdContent} />}
-
-            {/* Generation Progress */}
-            <GenerationProgress isGenerating={isGenerating} />
-
-            {/* Preview Panel */}
-            <div className="rounded-lg bg-yale-blue/20 p-6 border border-yale-blue/30 min-h-[400px] max-h-[calc(100vh-450px)] overflow-y-auto">
-              <h2 className="text-xl font-semibold mb-4 text-cool-sky sticky top-0 bg-yale-blue/20 pb-2 border-b border-yale-blue/30 z-10">
-                PRD Preview
-              </h2>
-              <PDFPreview content={prdContent} isGenerating={isGenerating} />
-            </div>
-
-            {/* Download Panel */}
-            {prdContent && !isGenerating && (
-              <DownloadPanel productName={productName} content={prdContent} />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="border-t border-yale-blue/30 mt-12">
-        <div className="container mx-auto px-6 py-6">
-          <p className="text-center text-sm text-gray-500">
-            Powered by Claude AI. Generate professional PRDs in seconds.
-          </p>
-        </div>
-      </footer>
-    </main>
+      <HeroSection onGenerate={handleGenerate} />
+      <HowItWorks />
+      <FeatureGrid />
+      <PDFOutput />
+      <FooterCTA />
+      <Footer />
+    </div>
   );
 }

@@ -4,10 +4,439 @@
 
 @layer base {
   * {
-    @apply border-gray-700;
+    border-color: rgba(255, 255, 255, 0.1);
   }
+
+  html {
+    font-family: system-ui, sans-serif;
+  }
+
   body {
-    @apply bg-background text-white;
+    @apply antialiased;
+    background-color: #191919;
+    color: white;
+  }
+}
+
+@layer components {
+  /* Typography classes */
+  .text-display {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .text-h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .text-h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .text-h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .text-h4 {
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  .text-body {
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  .text-small {
+    font-size: 0.75rem;
+    line-height: 1.6;
+  }
+
+  /* Button variants */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #191919, 0 0 0 4px #2383E2;
+  }
+
+  .btn-primary {
+    @apply btn h-10 px-4 rounded-lg text-white;
+    background-color: #2383E2;
+  }
+
+  .btn-primary:hover {
+    background-color: rgba(35, 131, 226, 0.9);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-secondary {
+    @apply btn h-10 px-4 rounded-lg text-white bg-transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .btn-secondary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-ghost {
+    @apply btn h-10 px-4 rounded-lg text-white bg-transparent;
+  }
+
+  .btn-ghost:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .btn-sm {
+    @apply h-8 px-3 text-sm;
+  }
+
+  .btn-lg {
+    @apply h-12 px-6 text-base;
+  }
+
+  /* Card styles */
+  .card {
+    @apply rounded-xl p-5;
+    background-color: #1F1F1F;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200;
+  }
+
+  .card-hover:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full h-10 px-4 rounded-lg text-white transition-all duration-200;
+    background-color: #1F1F1F;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .input::placeholder {
+    color: #A0A0A0;
+  }
+
+  .input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #2383E2;
+    border-color: transparent;
+  }
+
+  .textarea {
+    @apply input py-3 resize-none;
+    min-height: 120px;
+  }
+
+  /* Badge/Pill styles */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium;
+    background-color: rgba(35, 131, 226, 0.1);
+    color: #2383E2;
+  }
+
+  .badge-success {
+    background-color: rgba(39, 201, 63, 0.1);
+    color: #27C93F;
+  }
+
+  .badge-warning {
+    background-color: rgba(255, 189, 46, 0.1);
+    color: #FFBD2E;
+  }
+
+  .badge-error {
+    background-color: rgba(255, 95, 86, 0.1);
+    color: #FF5F56;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    @apply h-2 rounded-full overflow-hidden;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .progress-bar-fill {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+    background-color: #2383E2;
+  }
+
+  /* Step indicator */
+  .step-icon {
+    @apply w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200;
+  }
+
+  .step-icon-done {
+    @apply step-icon;
+    background-color: rgba(39, 201, 63, 0.1);
+  }
+
+  .step-icon-processing {
+    @apply step-icon;
+    background-color: rgba(35, 131, 226, 0.1);
+  }
+
+  .step-icon-pending {
+    @apply step-icon;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply card flex flex-col items-center justify-center text-center py-6;
+  }
+
+  /* Container */
+  .container-custom {
+    @apply mx-auto px-6;
+    max-width: 1280px;
+  }
+
+  @media (min-width: 768px) {
+    .container-custom {
+      @apply px-8;
+    }
+  }
+
+  /* Section spacing */
+  .section {
+    @apply py-16;
+  }
+
+  @media (min-width: 768px) {
+    .section {
+      @apply py-24;
+    }
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(to right, white, rgba(255, 255, 255, 0.6));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Text colors */
+  .text-teal {
+    color: #2383E2;
+  }
+
+  .text-success {
+    color: #27C93F;
+  }
+
+  .text-error {
+    color: #FF5F56;
+  }
+
+  .text-text-secondary {
+    color: #A0A0A0;
+  }
+
+  /* Background colors */
+  .bg-teal {
+    background-color: #2383E2;
+  }
+
+  .bg-near-black {
+    background-color: #1F1F1F;
+  }
+
+  .bg-success {
+    background-color: #27C93F;
+  }
+
+  .bg-error {
+    background-color: #FF5F56;
+  }
+
+  .bg-dark-teal {
+    background-color: #014379;
+  }
+
+  .bg-light-teal {
+    background-color: #5db5fe;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin 2s linear infinite;
+  }
+
+  /* Fade in animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  /* Slide in from bottom */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-in-up {
+    animation: slideInUp 0.6s ease-out forwards;
+  }
+
+  /* Scale in animation */
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out forwards;
+  }
+
+  /* Glow pulse animation for processing state */
+  @keyframes glowPulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(35, 131, 226, 0);
+    }
+    50% {
+      box-shadow: 0 0 20px 5px rgba(35, 131, 226, 0.2);
+    }
+  }
+
+  .animate-glow-pulse {
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+
+  /* Progress bar shimmer effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .progress-bar-shimmer {
+    background: linear-gradient(
+      90deg,
+      #2383E2 0%,
+      #5db5fe 50%,
+      #2383E2 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Bounce in animation for success icons */
+  @keyframes bounceIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-bounce-in {
+    animation: bounceIn 0.5s ease-out forwards;
+  }
+
+  /* Float animation for decorative elements */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* Stagger children animation helper */
+  .stagger-children > * {
+    opacity: 0;
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
+  .stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
+  .stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
+  .stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
+  .stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
+  .stagger-children > *:nth-child(6) { animation-delay: 0.6s; }
+
+  /* Page transition classes */
+  .page-enter {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .page-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
   }
 }
 

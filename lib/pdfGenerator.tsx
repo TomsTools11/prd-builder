@@ -4,28 +4,8 @@ import {
   Text,
   View,
   StyleSheet,
-  Font,
   pdf,
 } from "@react-pdf/renderer";
-
-// Register fonts (using system fonts for simplicity)
-Font.register({
-  family: "Inter",
-  fonts: [
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff2",
-      fontWeight: 400,
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hjp-Ek-_EeA.woff2",
-      fontWeight: 600,
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hjp-Ek-_EeA.woff2",
-      fontWeight: 700,
-    },
-  ],
-});
 
 // Color palette
 const colors = {
@@ -39,27 +19,26 @@ const colors = {
   lightGray: "#f3f4f6",
 };
 
-// Styles
+// Simple styles without problematic features
 const styles = StyleSheet.create({
   page: {
     padding: 50,
-    fontFamily: "Inter",
+    paddingBottom: 70,
+    fontFamily: "Helvetica",
     fontSize: 11,
     color: colors.prussianBlue,
-    lineHeight: 1.5,
   },
   coverPage: {
-    display: "flex",
-    flexDirection: "column",
+    padding: 50,
+    fontFamily: "Helvetica",
+    backgroundColor: colors.prussianBlue,
+    height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    height: "100%",
-    backgroundColor: colors.prussianBlue,
-    padding: 50,
   },
   coverTitle: {
-    fontSize: 36,
-    fontWeight: 700,
+    fontSize: 32,
+    fontFamily: "Helvetica-Bold",
     color: colors.white,
     marginBottom: 20,
     textAlign: "center",
@@ -74,192 +53,137 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.icyBlue,
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 10,
   },
   header: {
-    borderBottom: `2px solid ${colors.dodgerBlue}`,
-    paddingBottom: 10,
     marginBottom: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.dodgerBlue,
   },
   headerTitle: {
     fontSize: 10,
     color: colors.gray,
   },
-  footer: {
-    position: "absolute",
-    bottom: 30,
-    left: 50,
-    right: 50,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    fontSize: 9,
-    color: colors.gray,
-    borderTop: `1px solid ${colors.lightGray}`,
-    paddingTop: 10,
-  },
   h1: {
-    fontSize: 24,
-    fontWeight: 700,
+    fontSize: 22,
+    fontFamily: "Helvetica-Bold",
     color: colors.prussianBlue,
-    marginBottom: 16,
-    marginTop: 24,
+    marginBottom: 14,
+    marginTop: 20,
   },
   h2: {
-    fontSize: 18,
-    fontWeight: 600,
+    fontSize: 16,
+    fontFamily: "Helvetica-Bold",
     color: colors.yaleBlue,
-    marginBottom: 12,
-    marginTop: 20,
-    borderBottom: `1px solid ${colors.icyBlue}`,
-    paddingBottom: 4,
-  },
-  h3: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: colors.dodgerBlue,
-    marginBottom: 8,
-    marginTop: 14,
-  },
-  paragraph: {
-    fontSize: 11,
     marginBottom: 10,
-    textAlign: "justify",
-  },
-  listItem: {
-    flexDirection: "row",
-    marginBottom: 6,
-    paddingLeft: 10,
-  },
-  bullet: {
-    width: 15,
-    color: colors.dodgerBlue,
-  },
-  listContent: {
-    flex: 1,
-  },
-  table: {
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: colors.icyBlue,
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: colors.yaleBlue,
-  },
-  tableHeaderCell: {
-    padding: 8,
-    flex: 1,
-    fontSize: 10,
-    fontWeight: 600,
-    color: colors.white,
-    borderRightWidth: 1,
-    borderRightColor: colors.coolSky,
-  },
-  tableRow: {
-    flexDirection: "row",
+    marginTop: 16,
+    paddingBottom: 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.icyBlue,
   },
-  tableCell: {
-    padding: 8,
-    flex: 1,
-    fontSize: 10,
-    borderRightWidth: 1,
-    borderRightColor: colors.icyBlue,
-  },
-  tocItem: {
-    flexDirection: "row",
-    marginBottom: 8,
-  },
-  tocNumber: {
-    width: 30,
+  h3: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
     color: colors.dodgerBlue,
-    fontWeight: 600,
+    marginBottom: 8,
+    marginTop: 12,
   },
-  tocTitle: {
-    flex: 1,
+  paragraph: {
+    fontSize: 11,
+    marginBottom: 8,
+    lineHeight: 1.4,
   },
-  tocDots: {
-    flex: 1,
-    borderBottom: `1px dotted ${colors.gray}`,
-    marginHorizontal: 5,
+  listItem: {
+    fontSize: 11,
     marginBottom: 4,
-  },
-  tocPage: {
-    width: 30,
-    textAlign: "right",
+    marginLeft: 15,
+    lineHeight: 1.4,
   },
 });
 
-// Parse markdown content into structured sections
-function parseMarkdown(content: string) {
-  const lines = content.split("\n");
-  const sections: Array<{ type: string; content: string; level?: number }> = [];
+// Sanitize text for PDF - very strict, ASCII only
+function sanitizeText(text: string): string {
+  if (!text) return "";
 
-  let currentParagraph = "";
-
-  for (const line of lines) {
-    // Headers
-    if (line.startsWith("### ")) {
-      if (currentParagraph) {
-        sections.push({ type: "paragraph", content: currentParagraph.trim() });
-        currentParagraph = "";
-      }
-      sections.push({ type: "h3", content: line.slice(4), level: 3 });
-    } else if (line.startsWith("## ")) {
-      if (currentParagraph) {
-        sections.push({ type: "paragraph", content: currentParagraph.trim() });
-        currentParagraph = "";
-      }
-      sections.push({ type: "h2", content: line.slice(3), level: 2 });
-    } else if (line.startsWith("# ")) {
-      if (currentParagraph) {
-        sections.push({ type: "paragraph", content: currentParagraph.trim() });
-        currentParagraph = "";
-      }
-      sections.push({ type: "h1", content: line.slice(2), level: 1 });
-    }
-    // List items
-    else if (line.match(/^[\-\*]\s/)) {
-      if (currentParagraph) {
-        sections.push({ type: "paragraph", content: currentParagraph.trim() });
-        currentParagraph = "";
-      }
-      sections.push({ type: "listItem", content: line.slice(2) });
-    } else if (line.match(/^\d+\.\s/)) {
-      if (currentParagraph) {
-        sections.push({ type: "paragraph", content: currentParagraph.trim() });
-        currentParagraph = "";
-      }
-      sections.push({ type: "numberedItem", content: line.replace(/^\d+\.\s/, "") });
-    }
-    // Empty line
-    else if (line.trim() === "") {
-      if (currentParagraph) {
-        sections.push({ type: "paragraph", content: currentParagraph.trim() });
-        currentParagraph = "";
-      }
-    }
-    // Regular text
-    else {
-      currentParagraph += (currentParagraph ? " " : "") + line;
-    }
-  }
-
-  if (currentParagraph) {
-    sections.push({ type: "paragraph", content: currentParagraph.trim() });
-  }
-
-  return sections;
+  return (
+    text
+      // Replace common unicode with ASCII equivalents
+      .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+      .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+      .replace(/[\u2013\u2014\u2015]/g, "-")
+      .replace(/\u2026/g, "...")
+      .replace(/[\u2022\u2023\u25E6\u2043\u2219\u00B7]/g, "*")
+      .replace(/\u00A0/g, " ")
+      // Remove all non-ASCII characters
+      .replace(/[^\x20-\x7E\n\r\t]/g, "")
+      // Normalize whitespace
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .replace(/\t/g, "  ")
+      .replace(/ +/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  );
 }
 
-// PRD Document Component
-interface PRDDocumentProps {
-  productName: string;
+// Parse markdown into simple sections
+interface Section {
+  type: "h1" | "h2" | "h3" | "paragraph" | "listItem";
   content: string;
 }
 
-function PRDDocument({ productName, content }: PRDDocumentProps) {
+function parseMarkdown(content: string): Section[] {
+  const clean = sanitizeText(content);
+  const lines = clean.split("\n");
+  const sections: Section[] = [];
+  let paragraph = "";
+
+  const flushParagraph = () => {
+    if (paragraph.trim()) {
+      sections.push({ type: "paragraph", content: paragraph.trim() });
+      paragraph = "";
+    }
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith("### ")) {
+      flushParagraph();
+      sections.push({ type: "h3", content: trimmed.slice(4) });
+    } else if (trimmed.startsWith("## ")) {
+      flushParagraph();
+      sections.push({ type: "h2", content: trimmed.slice(3) });
+    } else if (trimmed.startsWith("# ")) {
+      flushParagraph();
+      sections.push({ type: "h1", content: trimmed.slice(2) });
+    } else if (trimmed.match(/^[-*]\s/)) {
+      flushParagraph();
+      sections.push({ type: "listItem", content: "* " + trimmed.slice(2) });
+    } else if (trimmed.match(/^\d+\.\s/)) {
+      flushParagraph();
+      sections.push({ type: "listItem", content: trimmed });
+    } else if (trimmed === "") {
+      flushParagraph();
+    } else {
+      paragraph += (paragraph ? " " : "") + trimmed;
+    }
+  }
+
+  flushParagraph();
+  return sections;
+}
+
+// Simple PRD Document
+function PRDDocument({
+  productName,
+  content,
+}: {
+  productName: string;
+  content: string;
+}) {
+  const safeName = sanitizeText(productName) || "Product";
   const sections = parseMarkdown(content);
   const today = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -267,15 +191,13 @@ function PRDDocument({ productName, content }: PRDDocumentProps) {
     day: "numeric",
   });
 
-  let itemNumber = 0;
-
   return (
     <Document>
       {/* Cover Page */}
       <Page size="A4" style={styles.coverPage}>
-        <Text style={styles.coverTitle}>Product Requirements Document</Text>
-        <Text style={styles.coverSubtitle}>{productName}</Text>
-        <View style={{ marginTop: 60 }}>
+        <View>
+          <Text style={styles.coverTitle}>Product Requirements Document</Text>
+          <Text style={styles.coverSubtitle}>{safeName}</Text>
           <Text style={styles.coverMeta}>Generated: {today}</Text>
           <Text style={styles.coverMeta}>Created with PRD Builder</Text>
         </View>
@@ -283,66 +205,49 @@ function PRDDocument({ productName, content }: PRDDocumentProps) {
 
       {/* Content Pages */}
       <Page size="A4" style={styles.page} wrap>
-        <View style={styles.header} fixed>
+        <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            {productName} - Product Requirements Document
+            {safeName} - Product Requirements Document
           </Text>
         </View>
 
         {sections.map((section, index) => {
+          const key = `section-${index}`;
           switch (section.type) {
             case "h1":
               return (
-                <Text key={index} style={styles.h1}>
+                <Text key={key} style={styles.h1}>
                   {section.content}
                 </Text>
               );
             case "h2":
               return (
-                <Text key={index} style={styles.h2}>
+                <Text key={key} style={styles.h2}>
                   {section.content}
                 </Text>
               );
             case "h3":
               return (
-                <Text key={index} style={styles.h3}>
+                <Text key={key} style={styles.h3}>
                   {section.content}
                 </Text>
               );
             case "listItem":
               return (
-                <View key={index} style={styles.listItem}>
-                  <Text style={styles.bullet}>•</Text>
-                  <Text style={styles.listContent}>{section.content}</Text>
-                </View>
-              );
-            case "numberedItem":
-              itemNumber++;
-              return (
-                <View key={index} style={styles.listItem}>
-                  <Text style={styles.bullet}>{itemNumber}.</Text>
-                  <Text style={styles.listContent}>{section.content}</Text>
-                </View>
-              );
-            case "paragraph":
-              return section.content ? (
-                <Text key={index} style={styles.paragraph}>
+                <Text key={key} style={styles.listItem}>
                   {section.content}
                 </Text>
-              ) : null;
+              );
+            case "paragraph":
+              return (
+                <Text key={key} style={styles.paragraph}>
+                  {section.content}
+                </Text>
+              );
             default:
               return null;
           }
         })}
-
-        <View style={styles.footer} fixed>
-          <Text>PRD Builder - AI-Powered Product Requirements</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} of ${totalPages}`
-            }
-          />
-        </View>
       </Page>
     </Document>
   );
@@ -353,12 +258,33 @@ export async function generatePRDPdf(
   productName: string,
   content: string
 ): Promise<Blob> {
-  const doc = <PRDDocument productName={productName} content={content} />;
-  const blob = await pdf(doc).toBlob();
-  return blob;
+  try {
+    const safeContent = sanitizeText(content) || "No content available.";
+    const safeName = sanitizeText(productName) || "Product";
+
+    // Limit content length
+    const maxLength = 30000;
+    const truncatedContent =
+      safeContent.length > maxLength
+        ? safeContent.slice(0, maxLength) + "\n\n[Content truncated...]"
+        : safeContent;
+
+    console.log("Generating PDF:", safeName, "Length:", truncatedContent.length);
+
+    const doc = (
+      <PRDDocument productName={safeName} content={truncatedContent} />
+    );
+    const blob = await pdf(doc).toBlob();
+
+    console.log("PDF generated, size:", blob.size);
+    return blob;
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    throw new Error("Failed to generate PDF. Please try again.");
+  }
 }
 
-// Download PDF
+// Download PDF helper
 export async function downloadPRDPdf(
   productName: string,
   content: string
@@ -367,7 +293,8 @@ export async function downloadPRDPdf(
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${productName.replace(/\s+/g, "-")}-PRD.pdf`;
+  const fileName = sanitizeText(productName).replace(/\s+/g, "-") || "PRD";
+  link.download = `${fileName}-PRD.pdf`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
