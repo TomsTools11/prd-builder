@@ -1,179 +1,177 @@
 "use client";
 
-import { Globe, FileText, Layout, FileCheck, CheckCircle, Loader2, Circle, Info } from "lucide-react";
+import { Globe, Loader2, Clock, FileText } from "lucide-react";
 import Header from "../Header";
-
-interface ProgressStep {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  status: "pending" | "processing" | "done";
-}
+import ReactMarkdown from "react-markdown";
 
 interface ProgressScreenProps {
   productName: string;
   progress: number;
-  currentStep: number;
+  elapsedTime: number;
+  content: string;
   onCancel: () => void;
 }
 
-const steps: Omit<ProgressStep, "status">[] = [
-  { id: "analyze", label: "Analyzing input", icon: Globe },
-  { id: "sections", label: "Generating sections", icon: FileText },
-  { id: "format", label: "Formatting document", icon: Layout },
-  { id: "finalize", label: "Finalizing PRD", icon: FileCheck },
-];
+// Format elapsed time as mm:ss
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+// Count words in content
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
 
 export default function ProgressScreen({
   productName,
   progress,
-  currentStep,
+  elapsedTime,
+  content,
   onCancel,
 }: ProgressScreenProps) {
-  const getStepStatus = (index: number): "pending" | "processing" | "done" => {
-    if (index < currentStep) return "done";
-    if (index === currentStep) return "processing";
-    return "pending";
-  };
-
-  const estimatedTimeRemaining = Math.max(0, Math.ceil((100 - progress) / 10));
+  const wordCount = countWords(content);
+  const charCount = content.length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header variant="generating" onCancel={onCancel} />
 
-      <main className="flex-1 flex items-center justify-center py-12">
-        <div className="w-full max-w-xl px-6 animate-slide-in-up">
-          {/* Product badge */}
-          <div className="flex justify-center mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-near-black border border-white/10 rounded-full text-sm">
-              <Globe className="h-4 w-4 text-text-secondary" />
-              <span className="text-text-secondary">{productName}</span>
+      <main className="flex-1 flex py-6 px-6 gap-6 overflow-hidden">
+        {/* Left side: Live content preview */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-teal/10 flex items-center justify-center">
+                <Loader2 className="h-5 w-5 text-teal animate-spin" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold">Generating PRD</h1>
+                <p className="text-sm text-text-secondary">{productName}</p>
+              </div>
             </div>
           </div>
 
-          {/* Title */}
-          <div className="text-center mb-10">
-            <h1 className="text-h1 mb-2">Generating PRD</h1>
-            <p className="text-text-secondary">
-              Please wait while we create your document...
-            </p>
+          {/* Live content area */}
+          <div className="flex-1 card overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto p-6">
+              {content ? (
+                <div className="prose prose-invert prose-sm max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ children }) => (
+                        <h1 className="text-2xl font-bold text-white mt-6 mb-4 first:mt-0">
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-xl font-semibold text-white mt-6 mb-3 border-b border-white/10 pb-2">
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-medium text-white mt-4 mb-2">
+                          {children}
+                        </h3>
+                      ),
+                      p: ({ children }) => (
+                        <p className="text-text-secondary mb-3 leading-relaxed">
+                          {children}
+                        </p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside text-text-secondary mb-3 space-y-1">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside text-text-secondary mb-3 space-y-1">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-text-secondary">{children}</li>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="text-white font-semibold">{children}</strong>
+                      ),
+                    }}
+                  >
+                    {content}
+                  </ReactMarkdown>
+                  {/* Typing cursor indicator */}
+                  <span className="inline-block w-2 h-5 bg-teal animate-pulse ml-1" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-text-secondary">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-teal" />
+                    <p>Waiting for content...</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+        </div>
 
+        {/* Right side: Compact progress panel */}
+        <div className="w-72 flex-shrink-0 flex flex-col gap-4">
           {/* Progress card */}
           <div className="card">
-            {/* Progress header */}
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-text-secondary">Overall Progress</span>
+              <span className="text-sm text-text-secondary">Progress</span>
               <span className="text-sm font-medium">{Math.round(progress)}%</span>
             </div>
-
-            {/* Progress bar */}
-            <div className="progress-bar mb-8">
+            <div className="progress-bar mb-4">
               <div
                 className="progress-bar-fill progress-bar-shimmer"
                 style={{ width: `${progress}%` }}
               />
             </div>
 
-            {/* Steps */}
+            {/* Stats */}
             <div className="space-y-3">
-              {steps.map((step, index) => {
-                const status = getStepStatus(index);
-                const StepIcon = step.icon;
-
-                return (
-                  <div
-                    key={step.id}
-                    className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-300 ${
-                      status === "processing"
-                        ? "bg-teal/10 border border-teal/20 animate-glow-pulse"
-                        : status === "done"
-                        ? "bg-success/5"
-                        : "bg-white/[0.02]"
-                    }`}
-                  >
-                    {/* Status icon */}
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        status === "done"
-                          ? "bg-success/10"
-                          : status === "processing"
-                          ? "bg-teal/10"
-                          : "bg-white/5"
-                      }`}
-                    >
-                      {status === "done" ? (
-                        <CheckCircle className="h-5 w-5 text-success" />
-                      ) : status === "processing" ? (
-                        <Loader2 className="h-5 w-5 text-teal animate-spin" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-text-secondary" />
-                      )}
-                    </div>
-
-                    {/* Step content */}
-                    <div className="flex-1 flex items-center gap-2">
-                      <StepIcon
-                        className={`h-4 w-4 ${
-                          status === "done"
-                            ? "text-success"
-                            : status === "processing"
-                            ? "text-teal"
-                            : "text-text-secondary"
-                        }`}
-                      />
-                      <span
-                        className={
-                          status === "pending"
-                            ? "text-text-secondary"
-                            : "text-white"
-                        }
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-
-                    {/* Status label */}
-                    <span
-                      className={`text-sm ${
-                        status === "done"
-                          ? "text-success"
-                          : status === "processing"
-                          ? "text-teal"
-                          : "text-text-secondary"
-                      }`}
-                    >
-                      {status === "done"
-                        ? "Done"
-                        : status === "processing"
-                        ? "Processing..."
-                        : ""}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Tip box */}
-            <div className="mt-6 p-4 bg-teal/5 border border-teal/10 rounded-lg">
-              <div className="flex gap-3">
-                <Info className="h-5 w-5 text-teal flex-shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-teal font-medium">Tip: </span>
-                  <span className="text-text-secondary text-sm">
-                    Your PRD will include all 15 standard sections, comprehensive requirements,
-                    and professional formatting.
-                  </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-text-secondary">
+                  <Clock className="h-4 w-4" />
+                  <span className="text-sm">Elapsed</span>
                 </div>
+                <span className="text-sm font-medium">{formatTime(elapsedTime)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-text-secondary">
+                  <FileText className="h-4 w-4" />
+                  <span className="text-sm">Words</span>
+                </div>
+                <span className="text-sm font-medium">{wordCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-text-secondary">
+                  <Globe className="h-4 w-4" />
+                  <span className="text-sm">Characters</span>
+                </div>
+                <span className="text-sm font-medium">{charCount.toLocaleString()}</span>
               </div>
             </div>
           </div>
 
-          {/* Estimated time */}
-          <p className="text-center text-sm text-text-secondary mt-6">
-            Estimated time remaining: {estimatedTimeRemaining} seconds
-          </p>
+          {/* Info card */}
+          <div className="card bg-teal/5 border-teal/10">
+            <p className="text-sm text-text-secondary">
+              Your PRD is being generated with 15 comprehensive sections including requirements,
+              success metrics, and timeline.
+            </p>
+          </div>
+
+          {/* Cancel button */}
+          <button
+            onClick={onCancel}
+            className="w-full py-3 px-4 rounded-lg border border-white/10 text-text-secondary hover:text-white hover:border-white/20 transition-colors"
+          >
+            Cancel
+          </button>
         </div>
       </main>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Header from "@/components/Header";
 import { HeroSection, HowItWorks, FeatureGrid, PDFOutput, FooterCTA, Footer } from "@/components/landing";
 import { ProgressScreen } from "@/components/progress";
@@ -9,21 +9,32 @@ import type { PRDFormData, UploadedFile } from "@/types";
 
 type AppState = "landing" | "generating" | "complete";
 
+// Expected PRD length for progress calculation (~30,000 characters)
+const EXPECTED_CHARACTERS = 30000;
+const TIMEOUT_MS = 60000; // 60 second timeout
+
 export default function Home() {
   const [appState, setAppState] = useState<AppState>("landing");
   const [prdContent, setPrdContent] = useState("");
   const [productName, setProductName] = useState("");
   const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [error, setError] = useState("");
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup interval on unmount
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const elapsedIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
+      if (elapsedIntervalRef.current) {
+        clearInterval(elapsedIntervalRef.current);
       }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      abortControllerRef.current?.abort();
     };
   }, []);
 
@@ -33,29 +44,21 @@ export default function Home() {
     setPrdContent("");
     setProductName(name);
     setProgress(0);
-    setCurrentStep(0);
+    setElapsedTime(0);
 
-    // Start progress simulation
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) {
-          return prev;
-        }
-        const increment = Math.random() * 5 + 2;
-        const newProgress = Math.min(prev + increment, 95);
+    // Setup abort controller for timeout and cancellation
+    abortControllerRef.current = new AbortController();
 
-        // Update current step based on progress
-        if (newProgress >= 75) {
-          setCurrentStep(3);
-        } else if (newProgress >= 50) {
-          setCurrentStep(2);
-        } else if (newProgress >= 25) {
-          setCurrentStep(1);
-        }
+    // Start elapsed time tracking
+    const startTime = Date.now();
+    elapsedIntervalRef.current = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
 
-        return newProgress;
-      });
-    }, 500);
+    // Setup timeout
+    timeoutRef.current = setTimeout(() => {
+      abortControllerRef.current?.abort();
+    }, TIMEOUT_MS);
 
     try {
       // Prepare form data for API
@@ -73,10 +76,11 @@ export default function Home() {
         }
       });
 
-      // Call streaming API
+      // Call streaming API with abort signal
       const response = await fetch("/api/generate", {
         method: "POST",
         body: apiFormData,
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -109,12 +113,14 @@ export default function Home() {
             const data = line.slice(6);
 
             if (data === "[DONE]") {
-              // Clear interval and complete
-              if (progressIntervalRef.current) {
-                clearInterval(progressIntervalRef.current);
+              // Clear timers and complete
+              if (elapsedIntervalRef.current) {
+                clearInterval(elapsedIntervalRef.current);
+              }
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
               }
               setProgress(100);
-              setCurrentStep(4);
               setTimeout(() => {
                 setAppState("complete");
               }, 500);
@@ -126,6 +132,9 @@ export default function Home() {
               if (parsed.text) {
                 contentBuffer += parsed.text;
                 setPrdContent(contentBuffer);
+                // Calculate real progress based on character count
+                const realProgress = Math.min(95, (contentBuffer.length / EXPECTED_CHARACTERS) * 100);
+                setProgress(realProgress);
               } else if (parsed.error) {
                 throw new Error(parsed.error);
               }
@@ -136,23 +145,41 @@ export default function Home() {
         }
       }
     } catch (err: any) {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
+      // Clear all timers
+      if (elapsedIntervalRef.current) {
+        clearInterval(elapsedIntervalRef.current);
       }
-      setError(err.message || "An error occurred while generating the PRD");
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // Handle abort/timeout vs other errors
+      if (err.name === "AbortError") {
+        setError("Generation timed out or was cancelled. Please try again with a shorter description.");
+      } else {
+        setError(err.message || "An error occurred while generating the PRD");
+      }
       setAppState("landing");
     }
   };
 
   const handleCancel = () => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
+    // Abort the active request
+    abortControllerRef.current?.abort();
+
+    // Clear all timers
+    if (elapsedIntervalRef.current) {
+      clearInterval(elapsedIntervalRef.current);
     }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
     setAppState("landing");
     setPrdContent("");
     setProductName("");
     setProgress(0);
-    setCurrentStep(0);
+    setElapsedTime(0);
   };
 
   const handleNewPRD = () => {
@@ -160,7 +187,7 @@ export default function Home() {
     setPrdContent("");
     setProductName("");
     setProgress(0);
-    setCurrentStep(0);
+    setElapsedTime(0);
     setError("");
   };
 
@@ -170,7 +197,8 @@ export default function Home() {
       <ProgressScreen
         productName={productName}
         progress={progress}
-        currentStep={currentStep}
+        elapsedTime={elapsedTime}
+        content={prdContent}
         onCancel={handleCancel}
       />
     );
