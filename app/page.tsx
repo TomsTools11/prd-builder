@@ -11,7 +11,7 @@ type AppState = "landing" | "generating" | "complete";
 
 // Expected PRD length for progress calculation (~30,000 characters)
 const EXPECTED_CHARACTERS = 30000;
-const TIMEOUT_MS = 60000; // 60 second timeout
+const TIMEOUT_MS = 180000; // 3 minute timeout
 
 export default function Home() {
   const [appState, setAppState] = useState<AppState>("landing");
