@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Document,
   Page,
@@ -100,6 +101,19 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     lineHeight: 1.4,
   },
+  bold: {
+    fontFamily: "Helvetica-Bold",
+  },
+  italic: {
+    fontFamily: "Helvetica-Oblique",
+  },
+  boldItalic: {
+    fontFamily: "Helvetica-BoldOblique",
+  },
+  inlineCode: {
+    fontFamily: "Courier",
+    fontSize: 10,
+  },
 });
 
 // Sanitize text for PDF - very strict, ASCII only
@@ -131,6 +145,93 @@ function sanitizeText(text: string): string {
 interface Section {
   type: "h1" | "h2" | "h3" | "paragraph" | "listItem";
   content: string;
+}
+
+// Type for inline formatting parts
+type FormattedPart = {
+  type: "plain" | "bold" | "italic" | "boldItalic" | "code";
+  content: string;
+};
+
+// Tokenize inline markdown formatting (bold, italic, code)
+function tokenizeInlineMarkdown(text: string): FormattedPart[] {
+  const result: FormattedPart[] = [];
+  // Regex: boldItalic (***), bold (**), italic (*), code (`)
+  // Order matters - check boldItalic before bold/italic
+  const pattern =
+    /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*([^*\n]+)\*|`([^`\n]+)`)/g;
+
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    // Add plain text before this match
+    if (match.index > lastIndex) {
+      result.push({ type: "plain", content: text.slice(lastIndex, match.index) });
+    }
+
+    // Determine which capture group matched
+    if (match[2] !== undefined) {
+      result.push({ type: "boldItalic", content: match[2] });
+    } else if (match[3] !== undefined) {
+      result.push({ type: "bold", content: match[3] });
+    } else if (match[4] !== undefined) {
+      result.push({ type: "italic", content: match[4] });
+    } else if (match[5] !== undefined) {
+      result.push({ type: "code", content: match[5] });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining plain text
+  if (lastIndex < text.length) {
+    result.push({ type: "plain", content: text.slice(lastIndex) });
+  }
+
+  return result.length > 0 ? result : [{ type: "plain", content: text }];
+}
+
+// Render formatted text with proper Text components
+function renderFormattedText(text: string): React.ReactNode {
+  const parts = tokenizeInlineMarkdown(text);
+
+  // If only one plain part, return as string
+  if (parts.length === 1 && parts[0].type === "plain") {
+    return parts[0].content;
+  }
+
+  return parts.map((part, index) => {
+    switch (part.type) {
+      case "bold":
+        return (
+          <Text key={index} style={styles.bold}>
+            {part.content}
+          </Text>
+        );
+      case "italic":
+        return (
+          <Text key={index} style={styles.italic}>
+            {part.content}
+          </Text>
+        );
+      case "boldItalic":
+        return (
+          <Text key={index} style={styles.boldItalic}>
+            {part.content}
+          </Text>
+        );
+      case "code":
+        return (
+          <Text key={index} style={styles.inlineCode}>
+            {part.content}
+          </Text>
+        );
+      case "plain":
+      default:
+        return part.content;
+    }
+  });
 }
 
 function parseMarkdown(content: string): Section[] {
@@ -217,31 +318,31 @@ function PRDDocument({
             case "h1":
               return (
                 <Text key={key} style={styles.h1}>
-                  {section.content}
+                  {renderFormattedText(section.content)}
                 </Text>
               );
             case "h2":
               return (
                 <Text key={key} style={styles.h2}>
-                  {section.content}
+                  {renderFormattedText(section.content)}
                 </Text>
               );
             case "h3":
               return (
                 <Text key={key} style={styles.h3}>
-                  {section.content}
+                  {renderFormattedText(section.content)}
                 </Text>
               );
             case "listItem":
               return (
                 <Text key={key} style={styles.listItem}>
-                  {section.content}
+                  {renderFormattedText(section.content)}
                 </Text>
               );
             case "paragraph":
               return (
                 <Text key={key} style={styles.paragraph}>
-                  {section.content}
+                  {renderFormattedText(section.content)}
                 </Text>
               );
             default:
