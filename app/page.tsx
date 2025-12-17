@@ -99,6 +99,8 @@ export default function Home() {
       let buffer = "";
       let contentBuffer = "";
 
+      let streamCompleted = false;
+
       while (true) {
         const { done, value } = await reader.read();
 
@@ -113,17 +115,7 @@ export default function Home() {
             const data = line.slice(6);
 
             if (data === "[DONE]") {
-              // Clear timers and complete
-              if (elapsedIntervalRef.current) {
-                clearInterval(elapsedIntervalRef.current);
-              }
-              if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-              }
-              setProgress(100);
-              setTimeout(() => {
-                setAppState("complete");
-              }, 500);
+              streamCompleted = true;
               break;
             }
 
@@ -143,6 +135,24 @@ export default function Home() {
             }
           }
         }
+
+        if (streamCompleted) break;
+      }
+
+      // Stream ended - complete if we have content
+      if (contentBuffer.length > 0) {
+        if (elapsedIntervalRef.current) {
+          clearInterval(elapsedIntervalRef.current);
+        }
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        setProgress(100);
+        setTimeout(() => {
+          setAppState("complete");
+        }, 500);
+      } else {
+        throw new Error("No content received from API");
       }
     } catch (err: any) {
       // Clear all timers
