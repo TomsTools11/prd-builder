@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, Layers, Type, FileText, Clock, Download, ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle, Layers, Type, FileText, Clock, Download, ExternalLink, Loader2, Copy, Check } from "lucide-react";
 import Header from "../Header";
 import PDFPreview from "../PDFPreview";
 
@@ -13,6 +13,17 @@ interface OutputScreenProps {
 
 export default function OutputScreen({ productName, content, onNewPRD }: OutputScreenProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+    }
+  };
   // Calculate stats from content
   const wordCount = content.split(/\s+/).filter(Boolean).length;
   const sectionCount = (content.match(/^##\s/gm) || []).length || 15;
@@ -130,6 +141,22 @@ export default function OutputScreen({ productName, content, onNewPRD }: OutputS
                   <>
                     <Download className="h-4 w-4" />
                     Download PDF
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleCopy}
+                className="btn-secondary w-full mt-3"
+              >
+                {isCopied ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Copy Markdown
                   </>
                 )}
               </button>
